@@ -1,0 +1,31 @@
+# Исключаем SSH-ключи
+grassghost
+grassghost.pub
+
+# Python кеш и компилированные файлы
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Конфигурационные файлы
+resources/config.properties
+
+# Логи и временные файлы
+*.log
+*.tmp
+*.swp
+.DS_Store
+
+# Виртуальное окружение (если используешь)
+venv/
+.env
+
+# PyTest и Allure отчеты
+*.pytest_cache/
+.allure/
+
+# IDE файлы
+.vscode/
+.idea/
+*.iml
