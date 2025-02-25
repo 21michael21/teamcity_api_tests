@@ -1,8 +1,13 @@
+# tests/base_api_test.py
 import requests
-import time
 from tests.base_test import BaseTest
 from src.specifications import Specifications
 from src.models import User
+import logging
+import random
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class BaseApiTest(BaseTest):
@@ -12,85 +17,141 @@ class BaseApiTest(BaseTest):
         self.user = User(username="admin", password="admin")
         self.auth_spec = self.specs.auth_spec(self.user)
 
-    def create_project(self, project_id):
+    def create_user(
+        self, username="test_user", password="test_pass", role="PROJECT_DEVELOPER"
+    ):
+        """Создание пользователя."""
         payload = {
-            "parentProject": {"locator": "_Root"},
-            "name": project_id,
-            "id": project_id,
-            "copyAllAssociatedSettings": True,
+            "username": username,
+            "password": password,
+            "name": username,
+            "email": f"{username}@example.com",
         }
+        if role:
+            payload["roles"] = {"role": [{"roleId": role, "scope": "g"}]}
+        logger.info(f"Creating user with payload: {payload}")
+        print(f"Creating user with payload: {payload}")
+        response = requests.post(
+            f"{self.auth_spec['base_url']}/users",
+            headers=self.auth_spec["headers"],
+            auth=self.auth_spec["auth"],
+            json=payload,
+        )
+        logger.info(f"User creation response: {response.status_code} - {response.text}")
+        print(f"User creation response: {response.status_code} - {response.text}")
+        return response
+
+    def create_project(self, project_id, user_auth):
+        """Создание проекта."""
+        payload = {
+            "id": project_id,
+            "name": project_id,
+            "parentProject": {"locator": "_Root"},
+        }
+        logger.info(f"Creating project with payload: {payload}")
+        print(f"Creating project with payload: {payload}")
         response = requests.post(
             f"{self.auth_spec['base_url']}/projects",
-            headers=self.auth_spec["headers"],
-            auth=self.auth_spec["auth"],
+            headers=user_auth["headers"],
+            auth=user_auth["auth"],
             json=payload,
         )
-        assert response.status_code == 200, f"Project creation failed: {response.text}"
-        print(f"Project '{project_id}' created")
-        return project_id
+        logger.info(
+            f"Project creation response: {response.status_code} - {response.text}"
+        )
+        print(f"Project creation response: {response.status_code} - {response.text}")
+        return response
 
-    def create_build_type(self, build_type_id, project_id):
+    def create_build_type(self, build_type_id, project_id, user_auth):
+        """Создание билд-конфигурации."""
         payload = {
             "id": build_type_id,
-            "name": "Print Hello World",
+            "name": f"Build {build_type_id}",
             "project": {"id": project_id},
-            "steps": {
-                "step": [
-                    {
-                        "name": "Echo Hello World",
-                        "type": "simpleRunner",
-                        "properties": {
-                            "property": [
-                                {
-                                    "name": "script.content",
-                                    "value": "echo 'Hello, world!'",
-                                },
-                                {"name": "teamcity.step.mode", "value": "default"},
-                                {"name": "use.custom.script", "value": "true"},
-                            ]
-                        },
-                    }
-                ]
-            },
         }
+        logger.info(f"Creating build type with payload: {payload}")
+        print(f"Creating build type with payload: {payload}")
         response = requests.post(
             f"{self.auth_spec['base_url']}/buildTypes",
+            headers=user_auth["headers"],
+            auth=user_auth["auth"],
+            json=payload,
+        )
+        logger.info(
+            f"Build type creation response: {response.status_code} - {response.text}"
+        )
+        print(f"Build type creation response: {response.status_code} - {response.text}")
+        return response
+
+    def grant_role(self, user_id, project_id, role="PROJECT_ADMIN"):
+        """Назначение роли пользователю в проекте."""
+        payload = {"role": [{"roleId": role, "scope": f"p:{project_id}"}]}
+        logger.info(
+            f"Granting role {role} to user {user_id} in project {project_id}: {payload}"
+        )
+        print(
+            f"Granting role {role} to user {user_id} in project {project_id}: {payload}"
+        )
+        response = requests.put(
+            f"{self.auth_spec['base_url']}/users/id:{user_id}/roles",
             headers=self.auth_spec["headers"],
             auth=self.auth_spec["auth"],
             json=payload,
         )
-        assert (
-            response.status_code == 200
-        ), f"Build type creation failed: {response.text}"
-        print(f"Build type '{build_type_id}' created")
-        return build_type_id
+        logger.info(
+            f"Role assignment response: {response.status_code} - {response.text}"
+        )
+        print(f"Role assignment response: {response.status_code} - {response.text}")
+        return response
 
-    def queue_build(self, build_type_id):
-        payload = {"buildType": {"id": build_type_id}}
-        response = requests.post(
-            f"{self.auth_spec['base_url']}/buildQueue",
+    def get_user_roles(self, user_id):
+        """Получение текущих ролей пользователя."""
+        response = requests.get(
+            f"{self.auth_spec['base_url']}/users/id:{user_id}/roles",
             headers=self.auth_spec["headers"],
             auth=self.auth_spec["auth"],
-            json=payload,
         )
-        assert response.status_code == 200, f"Build queue failed: {response.text}"
-        build_id = response.json()["id"]
-        print(f"Build queued with ID: {build_id}")
-        return build_id
+        logger.info(
+            f"User {user_id} roles response: {response.status_code} - {response.text}"
+        )
+        print(
+            f"User {user_id} roles response: {response.status_code} - {response.text}"
+        )
+        return response
 
-    def wait_for_build(self, build_id, timeout=60):
-        for attempt in range(timeout):
-            response = requests.get(
-                f"{self.auth_spec['base_url']}/builds/id:{build_id}",
+    def clear_user_roles(self, user_id):
+        """Очистка всех ролей пользователя."""
+        # Сначала получаем текущие роли
+        roles_response = self.get_user_roles(user_id)
+        if roles_response.status_code != 200:
+            logger.error(
+                f"Failed to get roles for user {user_id}: {roles_response.text}"
+            )
+            return roles_response
+
+        roles = roles_response.json().get("role", [])
+        if not roles:
+            logger.info(f"No roles to clear for user {user_id}")
+            print(f"No roles to clear for user {user_id}")
+            return None
+
+        # Удаляем каждую роль индивидуально
+        for role in roles:
+            role_id = role["roleId"]
+            scope = role["scope"]
+            logger.info(
+                f"Removing role {role_id} with scope {scope} for user {user_id}"
+            )
+            print(f"Removing role {role_id} with scope {scope} for user {user_id}")
+            response = requests.delete(
+                f"{self.auth_spec['base_url']}/users/id:{user_id}/roles/{role_id}/{scope}",
                 headers=self.auth_spec["headers"],
                 auth=self.auth_spec["auth"],
             )
-            if response.status_code == 200:
-                build_data = response.json()
-                state = build_data.get("state")
-                status = build_data.get("status")
-                print(f"Attempt {attempt + 1}: State={state}, Status={status}")
-                if state == "finished":
-                    return status
-            time.sleep(1)
-        raise TimeoutError(f"Build {build_id} did not finish in {timeout} seconds")
+            logger.info(
+                f"Remove role response: {response.status_code} - {response.text}"
+            )
+            print(f"Remove role response: {response.status_code} - {response.text}")
+            if response.status_code not in [200, 204]:
+                return response
+        return None
