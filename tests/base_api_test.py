@@ -1,10 +1,20 @@
 # tests/base_api_test.py
-import requests
-from tests.base_test import BaseTest
-from src.specifications import Specifications
-from src.models import User
-import logging
 import random
+import logging
+import requests
+
+from src.models import User
+from src.api.models.user import User
+from tests.base_test import BaseTest
+from src.enums.endpoint import Endpoint
+from src.specifications import Specifications
+from src.api.models.project import Project
+from src.api.models.build_type import BuildType, Step, Steps
+from src.api.specs.specifications import Specifications
+from src.api.requests.crud_requests import CrudRequests
+from src.utils.role_generator import generate_random_string, generate_instance, RoleGenerator
+from src.utils.validation_response_specs import ValidationResponseSpecifications
+from src.api.requests.checked.checked_base import CheckedBase
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
