@@ -1,8 +1,7 @@
-import time
 import pytest
 import allure
+import time
 import random
-
 from src.api.models.project import Project
 from src.api.models.build_type import BuildType, Step, Steps
 from src.api.models.user import User
@@ -12,6 +11,7 @@ from src.enums.endpoint import Endpoint
 from src.api.requests.checked.checked_base import CheckedBase
 from src.utils.role_generator import generate_random_string, RoleGenerator
 from src.utils.validation_response_specs import ValidationResponseSpecifications
+
 @allure.epic("Build Configuration")
 @allure.feature("Create Build Type")
 class TestBuildConfig:
@@ -71,7 +71,11 @@ class TestBuildConfig:
         
         with allure.step("Create second build type with the same ID"):
             response = self.crud.unchecked(Endpoint.BUILD_TYPES).create(build_type.dict(exclude_none=True))
-            assert response.status_code == 400, f"Expected 400, got {response.status_code}: {response.text}"
+            ValidationResponseSpecifications.validate_error(
+                response,
+                expected_status=400,
+                expected_error_message="Build type with id"
+            )
             print("Duplicate build type creation blocked successfully")
     
     @allure.story("Project Admin can create Build Type")
@@ -160,5 +164,9 @@ class TestBuildConfig:
             admin2_auth = Specifications().auth_spec(User(username=user2_id, password="admin456"))
             crud2 = CrudRequests(admin2_auth["base_url"], user2_id, "admin456")
             response = crud2.unchecked(Endpoint.BUILD_TYPES).create(build_type.dict(exclude_none=True))
-            assert response.status_code == 403, f"Expected 403, got {response.status_code}: {response.text}"
+            ValidationResponseSpecifications.validate_error(
+                response,
+                expected_status=403,
+                expected_error_message="Access denied"
+            )
             print("Build type creation in foreign project blocked successfully")
