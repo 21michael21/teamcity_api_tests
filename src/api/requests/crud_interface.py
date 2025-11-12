@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from src.api.models.base_model import BaseModel
+from pydantic import BaseModel
 
 class CrudInterface(ABC):
     """Интерфейс для поддержки CRUD-операций."""

@@ -1,10 +1,10 @@
 from src.api.requests.crud_interface import CrudInterface
 from src.api.requests.request import Request
-from src.requests.unchecked.unchecked_base import UncheckedBase
+from src.api.requests.unchecked.unchecked_base import UncheckedBase
 from src.enums.endpoint import Endpoint
-from src.api.models.base_model import BaseModel
+from src.utils.validation_response_specs import ValidationResponseSpecifications
+from pydantic import BaseModel
 import requests
-import pytest
 
 class CheckedBase(Request, CrudInterface):
     """Шаблон для проверяемых запросов CRUD эндпоинтов."""
