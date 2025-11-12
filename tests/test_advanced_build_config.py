@@ -10,8 +10,8 @@ from src.api.models.build_type import BuildType, Step, Steps
 from src.api.models.user import User
 from src.api.specs.specifications import Specifications
 from src.api.requests.crud_requests import CrudRequests
-from src.requests.unchecked.unchecked_base import UncheckedBase
-from src.requests.checked.checked_base import CheckedBase
+from src.api.requests.unchecked.unchecked_base import UncheckedBase
+from src.api.requests.checked.checked_base import CheckedBase
 from src.enums.endpoint import Endpoint
 
 # Добавляем путь к модулям в sys.path
