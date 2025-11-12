@@ -24,6 +24,8 @@ venv/
 # PyTest и Allure отчеты
 *.pytest_cache/
 .allure/
+allure-results/
+allure-result/
 
 # IDE файлы
 .vscode/
